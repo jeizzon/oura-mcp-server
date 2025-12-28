@@ -6,7 +6,7 @@ import {
   getHeartRate,
   getWorkouts,
   getSleepPeriods,
-  getEnhancedTags,
+  getTags,
   getRingConfiguration,
   getDailySpO2,
   getDailyStress,
@@ -315,8 +315,8 @@ export const tools: MCPTool[] = [
     },
   },
   {
-    name: "get_enhanced_tags",
-    description: "Get enhanced tags with richer metadata",
+    name: "get_tags",
+    description: "Get user-created tags and notes",
     inputSchema: {
       type: "object",
       properties: {
@@ -379,8 +379,8 @@ export async function executeToolCall(
       case "get_sleep_detailed":
         result = await handleGetSleepDetailed(args);
         break;
-      case "get_enhanced_tags":
-        result = await handleGetEnhancedTags(args);
+      case "get_tags":
+        result = await handleGetTags(args);
         break;
       case "get_health_insights":
         result = await handleGetHealthInsights(args);
@@ -736,35 +736,34 @@ async function handleGetSleepDetailed(args: any): Promise<string> {
 }
 
 /**
- * Handler for get_enhanced_tags tool
+ * Handler for get_tags tool
  */
-async function handleGetEnhancedTags(args: any): Promise<string> {
+async function handleGetTags(args: any): Promise<string> {
   const params = validateParams<{ start_date: string; end_date?: string }>(
     dateRangeSchema,
     args,
   );
   const { start_date, end_date } = params;
 
-  const cacheKey = `enhanced_tags:${start_date}:${end_date || "today"}`;
+  const cacheKey = `tags:${start_date}:${end_date || "today"}`;
   const cached = cache.get<string>(cacheKey);
   if (cached) return cached;
 
-  const data = await getEnhancedTags(start_date, end_date || getTodayDate());
+  const data = await getTags(start_date, end_date || getTodayDate());
 
   const mapped = data.map((item) => ({
     id: item.id,
-    tag_type_code: item.tag_type_code,
-    start_time: item.start_time,
-    end_time: item.end_time,
-    start_day: item.start_day,
-    end_day: item.end_day,
-    comment: item.comment,
+    day: item.day,
+    text: item.text,
+    timestamp: item.timestamp,
+    tags: item.tags,
   }));
 
-  const tagTypes = [...new Set(mapped.map((item) => item.tag_type_code))];
+  const allTags = mapped.flatMap((item) => item.tags);
+  const uniqueTags = [...new Set(allTags)];
   const summary = {
-    total_tags: mapped.length,
-    tag_types: tagTypes,
+    total_entries: mapped.length,
+    unique_tags: uniqueTags,
   };
 
   const result = JSON.stringify({ data: mapped, summary }, null, 2);
