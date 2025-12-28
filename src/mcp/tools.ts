@@ -17,6 +17,7 @@ import {
   getRestModePeriods,
   getSleepTime,
 } from "../oura/client.js";
+import { getOAuthStatus } from "../oauth/handler.js";
 import {
   validateParams,
   dateRangeSchema,
@@ -34,6 +35,14 @@ import { logger } from "../utils/logger.js";
  * List of all available MCP tools
  */
 export const tools: MCPTool[] = [
+  {
+    name: "get_oauth_status",
+    description: "Check OAuth connection status and granted scopes (useful for debugging permission issues)",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+  },
   {
     name: "get_personal_info",
     description: "Get user's personal information and ring details",
@@ -316,7 +325,7 @@ export const tools: MCPTool[] = [
   },
   {
     name: "get_enhanced_tags",
-    description: "Get enhanced tags with richer metadata",
+    description: "Get enhanced tags with duration and comments for lifestyle tracking",
     inputSchema: {
       type: "object",
       properties: {
@@ -358,6 +367,9 @@ export async function executeToolCall(
     let result: string;
 
     switch (name) {
+      case "get_oauth_status":
+        result = await handleGetOAuthStatus();
+        break;
       case "get_personal_info":
         result = await handleGetPersonalInfo();
         break;
@@ -428,6 +440,45 @@ export async function executeToolCall(
     logger.error(`Error executing tool ${name}:`, error);
     throw error;
   }
+}
+
+/**
+ * Handler for get_oauth_status tool
+ */
+async function handleGetOAuthStatus(): Promise<string> {
+  const status = await getOAuthStatus();
+
+  const requiredScopes = [
+    "email",
+    "personal",
+    "daily",
+    "heartrate",
+    "workout",
+    "tag",
+    "session",
+    "spo2",
+  ];
+
+  const grantedScopes = status.scope ? status.scope.split(" ") : [];
+  const missingScopes = requiredScopes.filter(
+    (scope) => !grantedScopes.includes(scope),
+  );
+
+  const result = {
+    connected: status.connected,
+    expires_at: status.expiresAt
+      ? new Date(status.expiresAt).toISOString()
+      : null,
+    granted_scopes: grantedScopes,
+    missing_scopes: missingScopes,
+    has_tag_scope: grantedScopes.includes("tag"),
+    recommendation:
+      missingScopes.length > 0
+        ? `Re-authenticate at /oauth/authorize to grant missing scopes: ${missingScopes.join(", ")}`
+        : "All required scopes are granted",
+  };
+
+  return JSON.stringify(result, null, 2);
 }
 
 /**
