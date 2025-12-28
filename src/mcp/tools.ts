@@ -6,7 +6,7 @@ import {
   getHeartRate,
   getWorkouts,
   getSleepPeriods,
-  getTags,
+  getEnhancedTags,
   getRingConfiguration,
   getDailySpO2,
   getDailyStress,
@@ -17,6 +17,7 @@ import {
   getRestModePeriods,
   getSleepTime,
 } from "../oura/client.js";
+import { getOAuthStatus } from "../oauth/handler.js";
 import {
   validateParams,
   dateRangeSchema,
@@ -34,6 +35,14 @@ import { logger } from "../utils/logger.js";
  * List of all available MCP tools
  */
 export const tools: MCPTool[] = [
+  {
+    name: "get_oauth_status",
+    description: "Check OAuth connection status and granted scopes (useful for debugging permission issues)",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+  },
   {
     name: "get_personal_info",
     description: "Get user's personal information and ring details",
@@ -315,8 +324,8 @@ export const tools: MCPTool[] = [
     },
   },
   {
-    name: "get_tags",
-    description: "Get user-created tags and notes",
+    name: "get_enhanced_tags",
+    description: "Get enhanced tags with duration and comments for lifestyle tracking",
     inputSchema: {
       type: "object",
       properties: {
@@ -358,6 +367,9 @@ export async function executeToolCall(
     let result: string;
 
     switch (name) {
+      case "get_oauth_status":
+        result = await handleGetOAuthStatus();
+        break;
       case "get_personal_info":
         result = await handleGetPersonalInfo();
         break;
@@ -379,8 +391,8 @@ export async function executeToolCall(
       case "get_sleep_detailed":
         result = await handleGetSleepDetailed(args);
         break;
-      case "get_tags":
-        result = await handleGetTags(args);
+      case "get_enhanced_tags":
+        result = await handleGetEnhancedTags(args);
         break;
       case "get_health_insights":
         result = await handleGetHealthInsights(args);
@@ -428,6 +440,45 @@ export async function executeToolCall(
     logger.error(`Error executing tool ${name}:`, error);
     throw error;
   }
+}
+
+/**
+ * Handler for get_oauth_status tool
+ */
+async function handleGetOAuthStatus(): Promise<string> {
+  const status = await getOAuthStatus();
+
+  const requiredScopes = [
+    "email",
+    "personal",
+    "daily",
+    "heartrate",
+    "workout",
+    "tag",
+    "session",
+    "spo2",
+  ];
+
+  const grantedScopes = status.scope ? status.scope.split(" ") : [];
+  const missingScopes = requiredScopes.filter(
+    (scope) => !grantedScopes.includes(scope),
+  );
+
+  const result = {
+    connected: status.connected,
+    expires_at: status.expiresAt
+      ? new Date(status.expiresAt).toISOString()
+      : null,
+    granted_scopes: grantedScopes,
+    missing_scopes: missingScopes,
+    has_tag_scope: grantedScopes.includes("tag"),
+    recommendation:
+      missingScopes.length > 0
+        ? `Re-authenticate at /oauth/authorize to grant missing scopes: ${missingScopes.join(", ")}`
+        : "All required scopes are granted",
+  };
+
+  return JSON.stringify(result, null, 2);
 }
 
 /**
@@ -736,34 +787,35 @@ async function handleGetSleepDetailed(args: any): Promise<string> {
 }
 
 /**
- * Handler for get_tags tool
+ * Handler for get_enhanced_tags tool
  */
-async function handleGetTags(args: any): Promise<string> {
+async function handleGetEnhancedTags(args: any): Promise<string> {
   const params = validateParams<{ start_date: string; end_date?: string }>(
     dateRangeSchema,
     args,
   );
   const { start_date, end_date } = params;
 
-  const cacheKey = `tags:${start_date}:${end_date || "today"}`;
+  const cacheKey = `enhanced_tags:${start_date}:${end_date || "today"}`;
   const cached = cache.get<string>(cacheKey);
   if (cached) return cached;
 
-  const data = await getTags(start_date, end_date || getTodayDate());
+  const data = await getEnhancedTags(start_date, end_date || getTodayDate());
 
   const mapped = data.map((item) => ({
     id: item.id,
-    day: item.day,
-    text: item.text,
-    timestamp: item.timestamp,
-    tags: item.tags,
+    tag_type_code: item.tag_type_code,
+    start_time: item.start_time,
+    end_time: item.end_time,
+    start_day: item.start_day,
+    end_day: item.end_day,
+    comment: item.comment,
   }));
 
-  const allTags = mapped.flatMap((item) => item.tags);
-  const uniqueTags = [...new Set(allTags)];
+  const tagTypes = [...new Set(mapped.map((item) => item.tag_type_code))];
   const summary = {
-    total_entries: mapped.length,
-    unique_tags: uniqueTags,
+    total_tags: mapped.length,
+    tag_types: tagTypes,
   };
 
   const result = JSON.stringify({ data: mapped, summary }, null, 2);

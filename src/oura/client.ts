@@ -19,7 +19,7 @@ import {
   OuraSessionResponse,
   OuraRestModePeriodResponse,
   OuraSleepTimeResponse,
-  OuraTagResponse,
+  OuraEnhancedTagResponse,
 } from "./types.js";
 
 const OURA_API_BASE_URL = "https://api.ouraring.com/v2";
@@ -280,12 +280,12 @@ export async function getSleepPeriods(
 }
 
 /**
- * Fetches tags data
+ * Fetches enhanced tags data
  */
-export async function getTags(
+export async function getEnhancedTags(
   startDate: string,
   endDate?: string,
-): Promise<OuraTagResponse[]> {
+): Promise<OuraEnhancedTagResponse[]> {
   const client = await createClient();
 
   try {
@@ -294,8 +294,8 @@ export async function getTags(
       params.end_date = endDate;
     }
 
-    const response = await client.get<OuraApiResponse<OuraTagResponse>>(
-      "/usercollection/tag",
+    const response = await client.get<OuraApiResponse<OuraEnhancedTagResponse>>(
+      "/usercollection/enhanced_tag",
       {
         params,
       },
@@ -303,7 +303,7 @@ export async function getTags(
 
     return response.data.data;
   } catch (error) {
-    logger.error("Failed to fetch tags:", error);
+    logger.error("Failed to fetch enhanced tags:", error);
     throw handleApiError(error);
   }
 }
