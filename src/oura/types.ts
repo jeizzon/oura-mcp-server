@@ -12,7 +12,7 @@ export interface PersonalInfo {
   age: number;
   weight: number;
   height: number;
-  biological_sex: 'male' | 'female';
+  biological_sex: "male" | "female";
   email: string;
 }
 
@@ -62,7 +62,7 @@ export interface ReadinessSummary {
   data: ReadinessData[];
   summary: {
     average_score: number;
-    trend: 'improving' | 'declining' | 'stable';
+    trend: "improving" | "declining" | "stable";
     total_days: number;
   };
 }
@@ -102,7 +102,7 @@ export interface ActivitySummary {
 export interface HeartRateReading {
   timestamp: string;
   bpm: number;
-  source: 'rest' | 'activity' | 'workout';
+  source: "rest" | "activity" | "workout";
 }
 
 export interface HeartRateSummary {
@@ -120,7 +120,7 @@ export interface HeartRateSummary {
 export interface WorkoutData {
   date: string;
   activity: string;
-  intensity: 'easy' | 'moderate' | 'hard';
+  intensity: "easy" | "moderate" | "hard";
   start_datetime: string;
   end_datetime: string;
   calories: number;
@@ -142,7 +142,7 @@ export interface WorkoutSummary {
 // Detailed Sleep Types
 export interface DetailedSleepData {
   date: string;
-  type: 'long_sleep' | 'short_sleep' | 'nap';
+  type: "long_sleep" | "short_sleep" | "nap";
   bedtime_start: string;
   bedtime_end: string;
   breath_average: number;
@@ -179,10 +179,10 @@ export interface RingStatus {
 
 // Health Insights Types
 export interface HealthInsight {
-  category: 'sleep' | 'activity' | 'readiness' | 'recovery';
+  category: "sleep" | "activity" | "readiness" | "recovery";
   finding: string;
   recommendation?: string;
-  priority: 'high' | 'medium' | 'low';
+  priority: "high" | "medium" | "low";
 }
 
 export interface HealthInsights {
@@ -192,9 +192,9 @@ export interface HealthInsights {
   };
   insights: HealthInsight[];
   trends: {
-    sleep: 'improving' | 'declining' | 'stable';
-    activity: 'improving' | 'declining' | 'stable';
-    readiness: 'improving' | 'declining' | 'stable';
+    sleep: "improving" | "declining" | "stable";
+    activity: "improving" | "declining" | "stable";
+    readiness: "improving" | "declining" | "stable";
   };
 }
 
@@ -203,7 +203,7 @@ export interface MCPTool {
   name: string;
   description: string;
   inputSchema: {
-    type: 'object';
+    type: "object";
     properties: Record<string, any>;
     required?: string[];
   };
@@ -216,7 +216,7 @@ export interface MCPToolCall {
 
 export interface MCPResponse {
   content: Array<{
-    type: 'text';
+    type: "text";
     text: string;
   }>;
 }
@@ -390,4 +390,130 @@ export interface OuraRingConfigurationResponse {
   hardware_type: string;
   set_up_at: string;
   size: number;
+}
+
+// Daily SpO2 Response
+export interface OuraDailySpO2Response {
+  id: string;
+  day: string;
+  spo2_percentage: {
+    average: number;
+  } | null;
+}
+
+// Daily Stress Response
+export interface OuraDailyStressResponse {
+  id: string;
+  day: string;
+  stress_high: number;
+  recovery_high: number;
+  day_summary: "restored" | "normal" | "stressful" | null;
+}
+
+// Daily Resilience Response
+export interface OuraDailyResilienceResponse {
+  id: string;
+  day: string;
+  level: "limited" | "adequate" | "solid" | "strong" | "exceptional" | null;
+  contributors: {
+    sleep_recovery: number;
+    daytime_recovery: number;
+    stress: number;
+  };
+}
+
+// Daily Cardiovascular Age Response
+export interface OuraDailyCardiovascularAgeResponse {
+  id: string;
+  day: string;
+  vascular_age: number | null;
+}
+
+// VO2 Max Response
+export interface OuraVO2MaxResponse {
+  id: string;
+  day: string;
+  timestamp: string;
+  vo2_max: number | null;
+}
+
+// Session Response (meditation, breathwork, etc.)
+export interface OuraSessionResponse {
+  id: string;
+  day: string;
+  start_datetime: string;
+  end_datetime: string;
+  type:
+    | "breathing"
+    | "meditation"
+    | "nap"
+    | "relaxation"
+    | "rest"
+    | "body_status";
+  heart_rate: {
+    interval: number;
+    items: number[];
+    timestamp: string;
+  } | null;
+  heart_rate_variability: {
+    interval: number;
+    items: number[];
+    timestamp: string;
+  } | null;
+  mood: "bad" | "worse" | "same" | "good" | "great" | null;
+  motion_count: {
+    interval: number;
+    items: number[];
+    timestamp: string;
+  } | null;
+}
+
+// Rest Mode Period Response
+export interface OuraRestModePeriodResponse {
+  id: string;
+  start_day: string;
+  start_time: string | null;
+  end_day: string | null;
+  end_time: string | null;
+  episodes: Array<{
+    tags: string[];
+    timestamp: string;
+  }>;
+}
+
+// Sleep Time Recommendation Response
+export interface OuraSleepTimeResponse {
+  id: string;
+  day: string;
+  optimal_bedtime: {
+    day_tz: number;
+    end_offset: number;
+    start_offset: number;
+  } | null;
+  recommendation:
+    | "improve_efficiency"
+    | "earlier_bedtime"
+    | "later_bedtime"
+    | "earlier_wake_up_time"
+    | "later_wake_up_time"
+    | "follow_optimal_bedtime"
+    | null;
+  status:
+    | "not_enough_nights"
+    | "not_enough_recent_nights"
+    | "bad_sleep_quality"
+    | "only_recommended_found"
+    | "optimal_found"
+    | null;
+}
+
+// Enhanced Tag Response
+export interface OuraEnhancedTagResponse {
+  id: string;
+  tag_type_code: string;
+  start_time: string | null;
+  end_time: string | null;
+  start_day: string;
+  end_day: string | null;
+  comment: string | null;
 }
