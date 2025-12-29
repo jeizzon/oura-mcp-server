@@ -810,6 +810,7 @@ async function handleGetEnhancedTags(args: any): Promise<string> {
     start_day: item.start_day,
     end_day: item.end_day,
     comment: item.comment,
+    custom_name: item.custom_name,
   }));
 
   const tagTypes = [...new Set(mapped.map((item) => item.tag_type_code))];
