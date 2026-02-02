@@ -459,7 +459,10 @@ async function handleGetOAuthStatus(): Promise<string> {
     "spo2",
   ];
 
-  const grantedScopes = status.scope ? status.scope.split(" ") : [];
+  // Oura API returns scopes with "extapi:" prefix (e.g., "extapi:heartrate")
+  // but we request them without the prefix. Normalize by stripping the prefix.
+  const rawScopes = status.scope ? status.scope.split(" ") : [];
+  const grantedScopes = rawScopes.map((s) => s.replace(/^extapi:/, ""));
   const missingScopes = requiredScopes.filter(
     (scope) => !grantedScopes.includes(scope),
   );
